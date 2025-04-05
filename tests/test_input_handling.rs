@@ -8,6 +8,7 @@ mod test {
         sync::{LazyLock, mpsc::channel},
         time::Duration,
     };
+    use tokio::sync::mpsc::Receiver;
     use tokio_util::sync::CancellationToken;
 
     pub const INPUT_POLL_INTERVAL: Duration = Duration::from_micros(10);
@@ -18,15 +19,25 @@ mod test {
         Box::new(Enigo::new(&Settings::default()).unwrap())
     }
 
+    async fn setup_input_handling() -> (
+        std::sync::mpsc::Receiver<(PotentialInputEvent, fun::Timestamp)>,
+        CancellationToken,
+        tokio::task::JoinHandle<()>,
+        Box<dyn EventSimulator>,
+    ) {
+        let cancel = CancellationToken::new();
+        let (tx, rx) = channel();
+        let event_simulator = build_event_simulator();
+        let handle = launch_send_inputs_task(&INPUT_HANDLER, tx, cancel.clone()).await;
+        (rx, cancel, handle, event_simulator)
+    }
+
     //TODO: Clean up a bit the test. Probably add a few setups functions
 
     #[serial]
     #[tokio::test(flavor = "multi_thread")]
     async fn test_received_expected_kb_inputs_length() {
-        let cancel = CancellationToken::new();
-        let (tx, rx) = channel();
-        let mut event_simulator = build_event_simulator();
-        let handle = launch_send_inputs_task(&INPUT_HANDLER, tx, cancel.clone()).await;
+        let (rx, cancel, handle, mut event_simulator) = setup_input_handling().await;
         let n_events = event_simulator.simulate_kb_down();
         let mut events: Vec<PotentialInputEvent> = vec![];
         let cancel_handle = tokio::spawn(async move {
@@ -48,11 +59,7 @@ mod test {
     #[serial]
     #[tokio::test(flavor = "multi_thread")]
     async fn test_received_mouse_down_inputs_length() {
-        let cancel = CancellationToken::new();
-        let (tx, rx) = channel();
-
-        let mut event_simulator = build_event_simulator();
-        let handle = launch_send_inputs_task(&INPUT_HANDLER, tx, cancel.clone()).await;
+        let (rx, cancel, handle, mut event_simulator) = setup_input_handling().await;
         let n_events = event_simulator.simulate_mouse_down();
         let mut events: Vec<PotentialInputEvent> = vec![];
         let cancel_handle = tokio::spawn(async move {
@@ -76,10 +83,7 @@ mod test {
     #[serial]
     #[tokio::test(flavor = "multi_thread")]
     async fn test_received_mouse_move_inputs_length() {
-        let cancel = CancellationToken::new();
-        let (tx, rx) = channel();
-        let mut event_simulator = build_event_simulator();
-        let handle = launch_send_inputs_task(&INPUT_HANDLER, tx, cancel.clone()).await;
+        let (rx, cancel, handle, mut event_simulator) = setup_input_handling().await;
         let n_events = event_simulator.simulate_move_mouse();
         let mut events: Vec<PotentialInputEvent> = vec![];
         let cancel_handle = tokio::spawn(async move {
@@ -103,10 +107,7 @@ mod test {
     #[serial]
     #[tokio::test(flavor = "multi_thread")]
     async fn test_received_kb_inputs_in_order() {
-        let cancel = CancellationToken::new();
-        let (tx, rx) = channel();
-        let mut event_simulator = build_event_simulator();
-        let handle = launch_send_inputs_task(&INPUT_HANDLER, tx, cancel.clone()).await;
+        let (rx, cancel, handle, mut event_simulator) = setup_input_handling().await;
         let n_events = event_simulator.simulate_kb_down();
         let mut events: Vec<PotentialInputEvent> = vec![];
         let cancel_handle = tokio::spawn(async move {
