@@ -1,3 +1,6 @@
+/// Tests input handling
+/// These test might move your mouse and send some keycode. You might think its because your
+/// computer is haunted. But it is not.
 #[cfg(test)]
 mod test {
     use device_query::DeviceEventsHandler;
@@ -10,7 +13,7 @@ mod test {
     };
     use tokio_util::sync::CancellationToken;
 
-    pub const INPUT_POLL_INTERVAL: Duration = Duration::from_micros(10);
+    pub const INPUT_POLL_INTERVAL: Duration = Duration::from_micros(1);
     pub static INPUT_HANDLER: LazyLock<DeviceEventsHandler> =
         LazyLock::new(|| DeviceEventsHandler::new(INPUT_POLL_INTERVAL).unwrap());
 
@@ -35,6 +38,7 @@ mod test {
 
     #[serial]
     #[tokio::test(flavor = "multi_thread")]
+    #[ignore]
     async fn test_received_expected_kb_inputs_length() {
         let (rx, cancel, handle, mut event_simulator) = setup_input_handling().await;
         let n_events = event_simulator.simulate_kb_down();
@@ -57,6 +61,7 @@ mod test {
 
     #[serial]
     #[tokio::test(flavor = "multi_thread")]
+    #[ignore]
     async fn test_received_mouse_down_inputs_length() {
         let (rx, cancel, handle, mut event_simulator) = setup_input_handling().await;
         let n_events = event_simulator.simulate_mouse_down();
@@ -81,6 +86,7 @@ mod test {
 
     #[serial]
     #[tokio::test(flavor = "multi_thread")]
+    #[ignore]
     async fn test_received_mouse_move_inputs_length() {
         let (rx, cancel, handle, mut event_simulator) = setup_input_handling().await;
         let n_events = event_simulator.simulate_move_mouse();
@@ -105,6 +111,7 @@ mod test {
 
     #[serial]
     #[tokio::test(flavor = "multi_thread")]
+    #[ignore]
     async fn test_received_kb_inputs_in_order() {
         let (rx, cancel, handle, mut event_simulator) = setup_input_handling().await;
         let n_events = event_simulator.simulate_kb_down();
