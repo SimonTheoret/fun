@@ -8,7 +8,6 @@ mod test {
         sync::{LazyLock, mpsc::channel},
         time::Duration,
     };
-    use tokio::sync::mpsc::Receiver;
     use tokio_util::sync::CancellationToken;
 
     pub const INPUT_POLL_INTERVAL: Duration = Duration::from_micros(10);
@@ -40,11 +39,11 @@ mod test {
         let (rx, cancel, handle, mut event_simulator) = setup_input_handling().await;
         let n_events = event_simulator.simulate_kb_down();
         let mut events: Vec<PotentialInputEvent> = vec![];
-        let cancel_handle = tokio::spawn(async move {
+        let _cancel_handle = tokio::spawn(async move {
             tokio::time::sleep(std::time::Duration::from_millis(100)).await;
             cancel.cancel();
         });
-        let (r1, r2) = tokio::join!(handle, cancel_handle);
+        let (r1, r2) = tokio::join!(handle, _cancel_handle);
         r1.unwrap();
         r2.unwrap();
         for _ in 0..n_events * 10 {
@@ -62,7 +61,7 @@ mod test {
         let (rx, cancel, handle, mut event_simulator) = setup_input_handling().await;
         let n_events = event_simulator.simulate_mouse_down();
         let mut events: Vec<PotentialInputEvent> = vec![];
-        let cancel_handle = tokio::spawn(async move {
+        let _cancel_handle = tokio::spawn(async move {
             tokio::time::sleep(std::time::Duration::from_millis(100)).await;
             cancel.cancel();
         })
@@ -86,7 +85,7 @@ mod test {
         let (rx, cancel, handle, mut event_simulator) = setup_input_handling().await;
         let n_events = event_simulator.simulate_move_mouse();
         let mut events: Vec<PotentialInputEvent> = vec![];
-        let cancel_handle = tokio::spawn(async move {
+        let _cancel_handle = tokio::spawn(async move {
             tokio::time::sleep(std::time::Duration::from_millis(100)).await;
             cancel.cancel();
         })
@@ -110,11 +109,11 @@ mod test {
         let (rx, cancel, handle, mut event_simulator) = setup_input_handling().await;
         let n_events = event_simulator.simulate_kb_down();
         let mut events: Vec<PotentialInputEvent> = vec![];
-        let cancel_handle = tokio::spawn(async move {
+        let _cancel_handle = tokio::spawn(async move {
             tokio::time::sleep(std::time::Duration::from_millis(100)).await;
             cancel.cancel();
         });
-        let (r1, r2) = tokio::join!(handle, cancel_handle);
+        let (r1, r2) = tokio::join!(handle, _cancel_handle);
         r1.unwrap();
         r2.unwrap();
         for _ in 0..n_events * 2 {

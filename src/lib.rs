@@ -24,7 +24,7 @@ pub static INPUT_HANDLER: LazyLock<DeviceEventsHandler> =
     LazyLock::new(|| DeviceEventsHandler::new(INPUT_POLL_INTERVAL).unwrap());
 
 pub async fn internal_main(_args: Args) {
-    let (tx, rx) = channel::<(PotentialInputEvent, Timestamp)>();
+    let (tx, _rx) = channel::<(PotentialInputEvent, Timestamp)>();
     let cancel = CancellationToken::new();
     let handler = &INPUT_HANDLER;
     let handle = launch_send_inputs_task(handler, tx, cancel.clone()).await;
