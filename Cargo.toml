@@ -5,11 +5,15 @@ edition = "2024"
 
 [dependencies]
 clap = { version = "4.5.35", features = ["derive"] }
+derive_more = { version = "2.0.1", features = ["full"] }
 device_query = "3.0.1"
+enigo = { version = "0.3.0", features = ["wayland", "x11rb"] }
 eyre = "0.6.12"
 jiff = "0.2.5"
 log = "0.4.27"
 tokio = { version = "1.44.1", features = ["full"] }
+tokio-util = { version = "0.7.14", features = ["full"] }
 
 [dev-dependencies]
 enigo = "0.3.0"
+serial_test = { version = "3.2.0", features = ["file_locks"] }

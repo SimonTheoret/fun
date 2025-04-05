@@ -27,6 +27,7 @@
             nodePackages_latest.bash-language-server
             cargo-expand
             xorg.libX11
+            libxkbcommon
             pkg-config
             xdotool
           ]);
