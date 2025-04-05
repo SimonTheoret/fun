@@ -15,20 +15,30 @@ pub struct Args {}
 
 impl Args {}
 
+/// We must use a *very* small duration for polling. If not, we might lose events! (and it makes
+/// testing with simulated inputs unreliable)
+pub const INPUT_POLL_INTERVAL: Duration = Duration::from_millis(10);
+/// Unfortunately, the device has access to a global (static) event_loop. To enable testing, we must
+/// initialisze it once.
+pub static INPUT_HANDLER: LazyLock<DeviceEventsHandler> =
+    LazyLock::new(|| DeviceEventsHandler::new(INPUT_POLL_INTERVAL).unwrap());
+
 pub async fn internal_main(_args: Args) {
     let (tx, rx) = channel::<(PotentialInputEvent, Timestamp)>();
     let cancel = CancellationToken::new();
-    let handle = launch_send_inputs_task(tx, cancel.clone()).await;
+    let handler = &INPUT_HANDLER;
+    let handle = launch_send_inputs_task(handler, tx, cancel.clone()).await;
     dbg!("out of internal main");
     let _ = tokio::join!(handle);
 }
 
 pub async fn launch_send_inputs_task(
+    handler: &'static DeviceEventsHandler,
     tx: Sender<(PotentialInputEvent, Timestamp)>,
     cancel: CancellationToken,
 ) -> TokioJoinHandle<()> {
     let ret = tokio::spawn(async move {
-        send_inputs(tx, cancel).await;
+        send_inputs(handler, tx, cancel).await;
     });
     dbg!("out of launch_send_inputs_task");
     ret
@@ -61,17 +71,12 @@ impl Timestamp {
     }
 }
 
-/// We must use a *very* small duration for polling. If not, we might lose events! (and it makes
-/// testing with simulated inputs unreliable)
-pub const INPUT_POLL_INTERVAL: Duration = Duration::from_micros(10);
-/// Unfortunately, the device has access to a global (static) event_loop. To enable testing, we must
-/// initialisze it once.
-pub static INPUT_HANDLER: LazyLock<DeviceEventsHandler> =
-    LazyLock::new(|| DeviceEventsHandler::new(INPUT_POLL_INTERVAL).unwrap());
-
-async fn send_inputs(channel: Sender<(PotentialInputEvent, Timestamp)>, cancel: CancellationToken) {
+async fn send_inputs(
+    handler: &DeviceEventsHandler,
+    channel: Sender<(PotentialInputEvent, Timestamp)>,
+    cancel: CancellationToken,
+) {
     dbg!("Into send_inputs");
-    let handler = &INPUT_HANDLER;
     let cloned = channel.clone();
     let mm_guard = setup_mouse_move_handler(handler, cloned);
 

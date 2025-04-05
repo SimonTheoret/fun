@@ -1,12 +1,18 @@
 #[cfg(test)]
 mod test {
-    use device_query::Keycode;
+    use device_query::DeviceEventsHandler;
     use enigo::{Button, Coordinate, Direction::Press, Enigo, Key, Keyboard, Mouse, Settings};
-    use fun::{InputEvent, PotentialInputEvent, launch_send_inputs_task};
+    use fun::{PotentialInputEvent, launch_send_inputs_task};
     use serial_test::serial;
-    use std::panic;
-    use std::sync::mpsc::channel;
+    use std::{
+        sync::{LazyLock, mpsc::channel},
+        time::Duration,
+    };
     use tokio_util::sync::CancellationToken;
+
+    pub const INPUT_POLL_INTERVAL: Duration = Duration::from_micros(10);
+    pub static INPUT_HANDLER: LazyLock<DeviceEventsHandler> =
+        LazyLock::new(|| DeviceEventsHandler::new(INPUT_POLL_INTERVAL).unwrap());
 
     fn build_event_simulator() -> Box<dyn EventSimulator> {
         Box::new(Enigo::new(&Settings::default()).unwrap())
@@ -20,7 +26,7 @@ mod test {
         let cancel = CancellationToken::new();
         let (tx, rx) = channel();
         let mut event_simulator = build_event_simulator();
-        let handle = launch_send_inputs_task(tx, cancel.clone()).await;
+        let handle = launch_send_inputs_task(&INPUT_HANDLER, tx, cancel.clone()).await;
         let n_events = event_simulator.simulate_kb_down();
         let mut events: Vec<PotentialInputEvent> = vec![];
         let cancel_handle = tokio::spawn(async move {
@@ -46,7 +52,7 @@ mod test {
         let (tx, rx) = channel();
 
         let mut event_simulator = build_event_simulator();
-        let handle = launch_send_inputs_task(tx, cancel.clone()).await;
+        let handle = launch_send_inputs_task(&INPUT_HANDLER, tx, cancel.clone()).await;
         let n_events = event_simulator.simulate_mouse_down();
         let mut events: Vec<PotentialInputEvent> = vec![];
         let cancel_handle = tokio::spawn(async move {
@@ -73,7 +79,7 @@ mod test {
         let cancel = CancellationToken::new();
         let (tx, rx) = channel();
         let mut event_simulator = build_event_simulator();
-        let handle = launch_send_inputs_task(tx, cancel.clone()).await;
+        let handle = launch_send_inputs_task(&INPUT_HANDLER, tx, cancel.clone()).await;
         let n_events = event_simulator.simulate_move_mouse();
         let mut events: Vec<PotentialInputEvent> = vec![];
         let cancel_handle = tokio::spawn(async move {
@@ -100,7 +106,7 @@ mod test {
         let cancel = CancellationToken::new();
         let (tx, rx) = channel();
         let mut event_simulator = build_event_simulator();
-        let handle = launch_send_inputs_task(tx, cancel.clone()).await;
+        let handle = launch_send_inputs_task(&INPUT_HANDLER, tx, cancel.clone()).await;
         let n_events = event_simulator.simulate_kb_down();
         let mut events: Vec<PotentialInputEvent> = vec![];
         let cancel_handle = tokio::spawn(async move {
