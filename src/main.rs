@@ -46,24 +46,41 @@ impl Timestamp {
 async fn send_inputs(channel: Sender<(InputEvent, Timestamp)>, duration: Duration) {
     let handler = DeviceEventsHandler::new(duration).unwrap();
     let cloned = channel.clone();
-    let _mm_guard = handler.on_mouse_move(move |_| {
-        cloned
-            .send((InputEvent::MouseMovement, Timestamp::now()))
-            .unwrap();
-    });
+    setup_mouse_move_handler(&handler, cloned);
 
     let cloned = channel.clone();
+    setup_mouse_down_handler(&handler, cloned);
+
+    setup_key_down_handler(handler, channel);
+
+    loop {
+        tokio::time::sleep(duration / 2).await;
+    }
+}
+
+fn setup_key_down_handler(handler: DeviceEventsHandler, tx: Sender<(InputEvent, Timestamp)>) {
+    let _kd_guard = handler.on_key_down(move |kd| {
+        tx.send((InputEvent::KB(*kd), Timestamp::now())).unwrap();
+    });
+}
+
+fn setup_mouse_down_handler(
+    handler: &DeviceEventsHandler,
+    cloned: Sender<(InputEvent, Timestamp)>,
+) {
     let _md_guard = handler.on_mouse_down(move |md| {
         cloned
             .send((InputEvent::MouseButton(*md), Timestamp::now()))
             .unwrap();
     });
+}
 
-    let _kd_guard = handler.on_key_down(move |kd| {
-        channel
-            .send((InputEvent::KB(*kd), Timestamp::now()))
+fn setup_mouse_move_handler(handler: &DeviceEventsHandler, tx: Sender<(InputEvent, Timestamp)>) {
+    let _mm_guard = handler.on_mouse_move(move |_| {
+        tx.send((InputEvent::MouseMovement, Timestamp::now()))
             .unwrap();
     });
+}
 
     loop {
         tokio::time::sleep(duration / 2).await;
