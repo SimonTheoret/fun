@@ -31,7 +31,6 @@
             pkg-config
             xdotool
           ]);
-          shellHook = "echo ${pkgs.xorg.libX11}";
         };
       });
 }
