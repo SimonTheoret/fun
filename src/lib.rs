@@ -3,12 +3,16 @@ use clap::Parser;
 use derive_more::{self, Display};
 use device_query::{self, CallbackGuard, DeviceEventsHandler};
 use device_query::{DeviceEvents, Keycode, MouseButton};
+use serde::{Deserialize, Serialize};
 use std::mem::drop;
 use std::sync::LazyLock;
 use std::sync::mpsc::{Sender, channel};
 use std::time::Duration;
 use tokio::task::JoinHandle as TokioJoinHandle;
 use tokio_util::sync::CancellationToken;
+
+mod keycodes;
+mod train;
 
 #[derive(Parser, Debug)]
 pub struct Args {}
@@ -35,6 +39,7 @@ pub async fn internal_main(_args: Args) {
 pub async fn launch_send_inputs_task(
     handler: &'static DeviceEventsHandler,
     tx: Sender<(PotentialInputEvent, Timestamp)>,
+
     cancel: CancellationToken,
 ) -> TokioJoinHandle<()> {
     let ret = tokio::spawn(async move {
@@ -44,9 +49,9 @@ pub async fn launch_send_inputs_task(
     ret
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 pub enum InputEvent {
-    KB(Keycode),
+    KB(keycodes::Keycode),
     MouseButton(MouseButton),
     #[default]
     MouseMovement,
@@ -61,7 +66,7 @@ pub enum PotentialInputEvent {
     Dummy,
 }
 
-#[derive(Debug, Display, derive_more::From)]
+#[derive(Debug, Display, derive_more::From, Serialize, Deserialize)]
 pub struct Timestamp(jiff::Timestamp);
 
 impl Timestamp {
@@ -109,7 +114,7 @@ fn setup_key_down_handler(
     handler.on_key_down(move |kd| {
         dbg!("Detected keyboard press");
         tx.send((
-            PotentialInputEvent::InputEvent(InputEvent::KB(*kd)),
+            PotentialInputEvent::InputEvent(InputEvent::KB(keycodes::Keycode::new(*kd))),
             Timestamp::now(),
         ))
         .unwrap();
